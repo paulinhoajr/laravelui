@@ -69,6 +69,8 @@ trait AuthenticatesUsers
      */
     protected function validateLogin(Request $request)
     {
+        $request['cpf_cnpj'] = onlyNumber($request['cpf_cnpj']);
+
         $request->validate([
             $this->username() => 'required|string',
             'password' => 'required|string',
@@ -84,7 +86,7 @@ trait AuthenticatesUsers
     protected function attemptLogin(Request $request)
     {
         return $this->guard()->attempt(
-            $this->credentials($request), $request->boolean('remember')
+            $this->credentials($request), $request->filled('remember')
         );
     }
 
@@ -116,8 +118,8 @@ trait AuthenticatesUsers
         }
 
         return $request->wantsJson()
-                    ? new JsonResponse([], 204)
-                    : redirect()->intended($this->redirectPath());
+            ? new JsonResponse([], 204)
+            : redirect()->intended($this->redirectPath());
     }
 
     /**
@@ -129,7 +131,10 @@ trait AuthenticatesUsers
      */
     protected function authenticated(Request $request, $user)
     {
-        //
+        if(!$user->is_active) {
+            Auth::logout();
+            abort(403, "Seu cadastro está inativo ou ainda não foi ativado !");
+        };
     }
 
     /**
@@ -154,7 +159,7 @@ trait AuthenticatesUsers
      */
     public function username()
     {
-        return 'email';
+        return 'cpf_cnpj';
     }
 
     /**
